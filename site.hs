@@ -108,11 +108,16 @@ fromDocDate doc = do
         ]
 
 fromDocTitle :: Pandoc -> Maybe String
-fromDocTitle doc = Just (unwords [ title | (Str title) <- docTitle (getPandocMeta doc)])
+fromDocTitle doc =
+  case unwords [ title | (Str title) <- docTitle (getPandocMeta doc)] of
+    "" -> Nothing
+    t  -> Just t
 
 savePandocData :: Pandoc -> (Pandoc -> Maybe String) -> String -> Compiler ()
-savePandocData doc fn field =
-    case fn doc of
+savePandocData doc fn field = do
+  identifier <- getUnderlying
+  metadata <- getMetadataField identifier field
+  case msum [fn doc, metadata] of
     Nothing -> return ()
     Just value -> do
       item <- makeItem value
@@ -128,7 +133,8 @@ myPandocCompiler = pandocCompilerWithTransformM ropt wopt $ \doc -> do
     ropt = defaultHakyllReaderOptions
     wopt = defaultHakyllWriterOptions
       {
-        writerHTMLMathMethod = MathML (Just "")
+        writerHTMLMathMethod = MathML (Just ""),
+        writerListings = True
       }
 
 myChronological :: [Item a] -> Compiler [Item a]
