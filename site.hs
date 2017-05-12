@@ -28,12 +28,6 @@ main = hakyll $ do
         route   idRoute
         compile copyFileCompiler
 
-    match (fromList ["about.rst", "contact.markdown"]) $ do
-        route   $ setExtension "html"
-        compile $ myPandocCompiler
-            >>= loadAndApplyTemplate "templates/default.html" defaultContext
-            >>= relativizeUrls
-
     match "posts/*" $ do
         route $ setExtension "html"
         compile $ do
@@ -49,12 +43,19 @@ main = hakyll $ do
             let archiveCtx =
                     listField "posts" postCtx (return posts) `mappend`
                     constField "title" "Archives"            `mappend`
+                    field "about" (\_ -> loadBody (fromFilePath "about.md"))     `mappend`
+                    field "contact" (\_ -> loadBody (fromFilePath "contact.md")) `mappend`
                     defaultContext
 
             makeItem ""
                 >>= loadAndApplyTemplate "templates/archive.html" archiveCtx
                 >>= loadAndApplyTemplate "templates/default.html" archiveCtx
                 >>= relativizeUrls
+
+    match (fromList ["about.md", "contact.md"]) $ do
+      compile $ myPandocCompiler
+        >>= loadAndApplyTemplate "templates/plain.html" postCtx
+        >>= relativizeUrls
 
     match "index.html" $ do
         route idRoute
@@ -63,6 +64,8 @@ main = hakyll $ do
             let indexCtx =
                     listField "posts" postCtx (return posts) `mappend`
                     constField "title" "Home"                `mappend`
+                    field "about" (\_ -> loadBody (fromFilePath "about.md"))     `mappend`
+                    field "contact" (\_ -> loadBody (fromFilePath "contact.md")) `mappend`
                     defaultContext
 
             getResourceBody
