@@ -31,9 +31,12 @@ main = hakyll $ do
     match "posts/*" $ do
         route $ setExtension "html"
         compile $ do
+          let extendedPostCtx =
+                infoCtx `mappend`
+                postCtx
           myPandocCompiler
-            >>= loadAndApplyTemplate "templates/post.html"    postCtx
-            >>= loadAndApplyTemplate "templates/default.html" postCtx
+            >>= loadAndApplyTemplate "templates/post.html" extendedPostCtx
+            >>= loadAndApplyTemplate "templates/default.html" extendedPostCtx
             >>= relativizeUrls
 
     create ["archive.html"] $ do
@@ -43,8 +46,7 @@ main = hakyll $ do
             let archiveCtx =
                     listField "posts" postCtx (return posts) `mappend`
                     constField "title" "Archives"            `mappend`
-                    field "about" (\_ -> loadBody (fromFilePath "about.md"))     `mappend`
-                    field "contact" (\_ -> loadBody (fromFilePath "contact.md")) `mappend`
+                    infoCtx                                  `mappend`
                     defaultContext
 
             makeItem ""
@@ -64,8 +66,7 @@ main = hakyll $ do
             let indexCtx =
                     listField "posts" postCtx (return posts) `mappend`
                     constField "title" "Home"                `mappend`
-                    field "about" (\_ -> loadBody (fromFilePath "about.md"))     `mappend`
-                    field "contact" (\_ -> loadBody (fromFilePath "contact.md")) `mappend`
+                    infoCtx                                  `mappend`
                     defaultContext
 
             getResourceBody
@@ -75,7 +76,6 @@ main = hakyll $ do
 
     match "templates/*" $ compile templateBodyCompiler
 
-
 --------------------------------------------------------------------------------
 postCtx :: Context String
 postCtx =
@@ -83,6 +83,11 @@ postCtx =
   pandocField "title" `mappend`
   dateField "date" "%B %e, %Y" `mappend`
   defaultContext
+
+infoCtx :: Context String
+infoCtx =
+  field "about" (\_ -> loadBody (fromFilePath "about.md"))     `mappend`
+  field "contact" (\_ -> loadBody (fromFilePath "contact.md"))
 
 pandocField :: String -> Context a
 pandocField f = field f $ \item -> do

@@ -2,7 +2,7 @@ body {
     margin: 0px auto 0px auto;
     width: 800px;
     display: flex;
-    flex-direction: column;    
+    flex-direction: column;
 }
 
 div#header {
@@ -34,13 +34,13 @@ div#body {
 }
 
 div#content {
-    padding: 12px 0px 12px 12px;    
+    padding: 12px 0px 12px 12px;
     flex: 1;
     order: -1;
 }
 
 div#sidebar {
-    padding: 12px 0px 12px 12px;    
+    padding: 12px 0px 12px 12px;
     flex: 0;
 }
 
