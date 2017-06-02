@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings, TupleSections #-}
 import Data.List (sortBy)
 import Data.Maybe
-import Data.Monoid (mappend)
+import Data.Monoid ((<>))
 import Data.Ord
 import Data.Time.Clock
 import Data.Time.Format
@@ -28,11 +28,11 @@ main = hakyll $ do
         route   idRoute
         compile copyFileCompiler
 
-    match "posts/*" $ do
+    match "posts/*.tex" $ do
         route $ setExtension "html"
         compile $ do
           let extendedPostCtx =
-                infoCtx `mappend`
+                infoCtx <>
                 postCtx
           myPandocCompiler
             >>= loadAndApplyTemplate "templates/post.html" extendedPostCtx
@@ -44,10 +44,10 @@ main = hakyll $ do
         compile $ do
             posts <- myRecentFirst =<< loadAll "posts/*"
             let archiveCtx =
-                    listField "posts" postCtx (return posts) `mappend`
-                    constField "title" "Archives"            `mappend`
-                    infoCtx                                  `mappend`
-                    defaultContext
+                    listField "posts" postCtx (return posts) <>
+                    constField "title" "Archives"            <>
+                    infoCtx                                  <>
+                    myDefaultContext
 
             makeItem ""
                 >>= loadAndApplyTemplate "templates/archive.html" archiveCtx
@@ -64,10 +64,10 @@ main = hakyll $ do
         compile $ do
             posts <- myRecentFirst =<< loadAll "posts/*"
             let indexCtx =
-                    listField "posts" postCtx (return posts) `mappend`
-                    constField "title" "Home"                `mappend`
-                    infoCtx                                  `mappend`
-                    defaultContext
+                    listField "posts" postCtx (return posts) <>
+                    constField "title" "Home"                <>
+                    infoCtx                                  <>
+                    myDefaultContext
 
             getResourceBody
                 >>= applyAsTemplate indexCtx
@@ -79,15 +79,21 @@ main = hakyll $ do
 --------------------------------------------------------------------------------
 postCtx :: Context String
 postCtx =
-  pandocField "date" `mappend`
-  pandocField "title" `mappend`
-  dateField "date" "%B %e, %Y" `mappend`
-  defaultContext
+  pandocField "date" <>
+  pandocField "title" <>
+  dateField "date" "%B %e, %Y" <>
+  myDefaultContext
 
 infoCtx :: Context String
 infoCtx =
-  field "about" (\_ -> loadBody (fromFilePath "about.md"))     `mappend`
+  field "about" (\_ -> loadBody (fromFilePath "about.md"))     <>
   field "contact" (\_ -> loadBody (fromFilePath "contact.md"))
+
+myDefaultContext :: Context String
+myDefaultContext =
+  metadataField <>
+  constField "keywords" "" <>
+  defaultContext
 
 pandocField :: String -> Context a
 pandocField f = field f $ \item -> do
