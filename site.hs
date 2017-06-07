@@ -18,9 +18,22 @@ main = hakyll $ do
         route   idRoute
         compile copyFileCompiler
 
+    tags <- buildTags "posts/*" (fromCapture "tags/*.html")
+    let tags' = Just tags
+
+    tagsRules tags $ \tag p -> do
+        route idRoute
+        compile $ do
+            posts <- recentFirst =<< loadAll p
+            let ctx = getContext Nothing posts
+            makeItem ""
+                >>= loadAndApplyTemplate "templates/tag.html" ctx
+                >>= loadAndApplyTemplate "templates/default.html" ctx
+                >>= relativizeUrls
+
     match "posts/*" $ do
         route $ setExtension "html"
-        let ctx = getContext [] ""
+        let ctx = getContext tags' []
         compile $ do
           pandocCompiler
             >>= loadAndApplyTemplate "templates/post.html" ctx
@@ -31,15 +44,14 @@ main = hakyll $ do
         route idRoute
         compile $ do
             posts <- recentFirst =<< loadAll "posts/*"
-            let ctx = getContext posts "Archives"
-
+            let ctx = getContext tags' posts
             makeItem ""
                 >>= loadAndApplyTemplate "templates/archive.html" ctx
                 >>= loadAndApplyTemplate "templates/default.html" ctx
                 >>= relativizeUrls
 
     match (fromList ["about.md", "contact.md"]) $ do
-      compile $ let ctx = getContext [] "" in
+      compile $ let ctx = getContext tags' [] in
         pandocCompiler
         >>= loadAndApplyTemplate "templates/plain.html" ctx
         >>= relativizeUrls
@@ -48,7 +60,7 @@ main = hakyll $ do
         route idRoute
         compile $ do
             posts <- recentFirst =<< loadAll "posts/*"
-            let ctx = getContext posts "Home"
+            let ctx = getContext tags' posts
 
             getResourceBody
                 >>= applyAsTemplate ctx
@@ -58,15 +70,14 @@ main = hakyll $ do
     match "templates/*" $ compile templateBodyCompiler
 
 --------------------------------------------------------------------------------
-getContext :: [Item String] -> String -> Context String
-getContext posts title =
-  metadataField                                                <>
-  listField "posts" ctx (return posts)                         <>
+getContext :: Maybe Tags -> [Item String] -> Context String
+getContext tags posts =
+  listField "posts" ctx (return posts) <>
+  maybe mempty (tagsField "tags") tags <>
+  metadataField                        <>
   ctx
   where
     ctx =
-      metadataField                                                <>
-      constField "title" title                                     <>
       field "about" (\_ -> loadBody (fromFilePath "about.md"))     <>
       field "contact" (\_ -> loadBody (fromFilePath "contact.md")) <>
       defaultContext
