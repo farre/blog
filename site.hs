@@ -25,7 +25,7 @@ main = hakyll $ do
         route idRoute
         compile $ do
             posts <- recentFirst =<< loadAll p
-            let ctx = getContext Nothing posts
+            let ctx = getContext Nothing posts (Just $ "Tag " ++ show tag)
             makeItem ""
                 >>= loadAndApplyTemplate "templates/tag.html" ctx
                 >>= loadAndApplyTemplate "templates/default.html" ctx
@@ -33,9 +33,10 @@ main = hakyll $ do
 
     match "posts/*" $ do
         route $ setExtension "html"
-        let ctx = getContext tags' []
+        let ctx = getContext tags' [] Nothing
         compile $ do
           pandocCompiler
+            >>= saveSnapshot "content"
             >>= loadAndApplyTemplate "templates/post.html" ctx
             >>= loadAndApplyTemplate "templates/default.html" ctx
             >>= relativizeUrls
@@ -44,14 +45,14 @@ main = hakyll $ do
         route idRoute
         compile $ do
             posts <- recentFirst =<< loadAll "posts/*"
-            let ctx = getContext tags' posts
+            let ctx = getContext tags' posts (Just "Archive")
             makeItem ""
                 >>= loadAndApplyTemplate "templates/archive.html" ctx
                 >>= loadAndApplyTemplate "templates/default.html" ctx
                 >>= relativizeUrls
 
     match (fromList ["about.md", "contact.md"]) $ do
-      compile $ let ctx = getContext tags' [] in
+      compile $ let ctx = getContext tags' [] Nothing in
         pandocCompiler
         >>= loadAndApplyTemplate "templates/plain.html" ctx
         >>= relativizeUrls
@@ -59,8 +60,8 @@ main = hakyll $ do
     match "index.html" $ do
         route idRoute
         compile $ do
-            posts <- recentFirst =<< loadAll "posts/*"
-            let ctx = getContext tags' posts
+            posts <- recentFirst =<< loadAllSnapshots "posts/*" "content"
+            let ctx = getContext tags' posts Nothing
 
             getResourceBody
                 >>= applyAsTemplate ctx
@@ -70,14 +71,16 @@ main = hakyll $ do
     match "templates/*" $ compile templateBodyCompiler
 
 --------------------------------------------------------------------------------
-getContext :: Maybe Tags -> [Item String] -> Context String
-getContext tags posts =
-  listField "posts" ctx (return posts) <>
-  maybe mempty (tagsField "tags") tags <>
-  metadataField                        <>
+getContext :: Maybe Tags -> [Item String] -> Maybe String -> Context String
+getContext tags posts title =
+  listField "posts" ctx (return posts)    <>
+  maybe mempty (constField "title") title <>
   ctx
   where
     ctx =
       field "about" (\_ -> loadBody (fromFilePath "about.md"))     <>
       field "contact" (\_ -> loadBody (fromFilePath "contact.md")) <>
+      maybe mempty (tagsField "tags") tags                         <>
+      teaserField "teaser" "content"                               <>
+      metadataField                                                <>
       defaultContext

@@ -1,7 +1,7 @@
 <ul>
     $for(posts)$
-        <li>
-            <a href="$url$">$title$</a> - $date$
-        </li>
+      <li>
+        $partial("templates/post-list-item.html")$
+      </li>
     $endfor$
 </ul>

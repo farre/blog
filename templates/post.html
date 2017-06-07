@@ -5,7 +5,11 @@
   $endif$
 </div>
 
-$body$
+$if(teaser)$
+  $teaser$
+$else$
+  $body$
+$endif$
 
 <div class="info">
   $if(tags)$ Tags: $tags$ $endif$
