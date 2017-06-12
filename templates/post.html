@@ -1,16 +1,20 @@
+$if(teaser)$
+<h2>$title$</h2>
+$endif$
 <div class="info">
   Posted on $date$
   $if(author)$
   by $author$
   $endif$
 </div>
-
-$if(teaser)$
-  $teaser$
-$else$
-  $body$
-$endif$
-
 <div class="info">
   $if(tags)$ Tags: $tags$ $endif$
+</div>
+<div>
+  $if(teaser)$
+    $teaser$
+    <a href="$url$">More...</a>
+  $else$
+    $body$
+  $endif$
 </div>

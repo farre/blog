@@ -73,14 +73,13 @@ main = hakyll $ do
 --------------------------------------------------------------------------------
 getContext :: Maybe Tags -> [Item String] -> Maybe String -> Context String
 getContext tags posts title =
-  listField "posts" ctx (return posts)    <>
-  maybe mempty (constField "title") title <>
+  listField "posts" (teaserField "teaser" "content" <> ctx) (return posts) <>
+  maybe mempty (constField "title") title                                  <>
   ctx
   where
     ctx =
       field "about" (\_ -> loadBody (fromFilePath "about.md"))     <>
       field "contact" (\_ -> loadBody (fromFilePath "contact.md")) <>
       maybe mempty (tagsField "tags") tags                         <>
-      teaserField "teaser" "content"                               <>
       metadataField                                                <>
       defaultContext
