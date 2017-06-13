@@ -33,7 +33,7 @@ main = hakyll $ do
 
     match "posts/*" $ do
         route $ setExtension "html"
-        let ctx = getContext tags' [] Nothing
+        let ctx = constField "post" "" <> getContext tags' [] Nothing
         compile $ do
           pandocCompiler
             >>= saveSnapshot "content"

@@ -24,6 +24,10 @@ function loadComments(commentId) {
 }
 
 function populateComments(receiver) {
+  if (!receiver) {
+    return;
+  }
+
   loadComments(receiver.dataset.id).then(data => {
     console.log(data);
   }).catch(error => {
