@@ -38,6 +38,7 @@ main = hakyll $ do
           pandocCompiler
             >>= saveSnapshot "content"
             >>= loadAndApplyTemplate "templates/post.html" ctx
+            >>= loadAndApplyTemplate "templates/comments.html" ctx
             >>= loadAndApplyTemplate "templates/default.html" ctx
             >>= relativizeUrls
 
@@ -78,8 +79,8 @@ getContext tags posts title =
   ctx
   where
     ctx =
-      field "about" (\_ -> loadBody (fromFilePath "about.md"))     <>
-      field "contact" (\_ -> loadBody (fromFilePath "contact.md")) <>
-      maybe mempty (tagsField "tags") tags                         <>
-      metadataField                                                <>
+      field "about" (\_ -> loadBody (fromFilePath "about.md"))       <>
+      field "contact" (\_ -> loadBody (fromFilePath "contact.md"))   <>
+      maybe mempty (tagsField "tags") tags                           <>
+      metadataField                                                  <>
       defaultContext
