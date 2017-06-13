@@ -1,6 +1,5 @@
 function loadComments(commentId) {
   var id = commentId;
-  console.log("Id is " + id)
   return new Promise(function(resolve, reject) {
     let url = ["https://api.github.com/repos/farre/blog/issues", id, "comments"].join('/')
     var request = new XMLHttpRequest();
