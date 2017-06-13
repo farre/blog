@@ -35,6 +35,8 @@ function populateComments(receiver) {
       let element = elementTemplate.cloneNode(true);
       let image = imageTemplate.cloneNode(false);
       image.src = user.avatar_url;
+      image.id = "";
+
       let name = element.querySelector("a.commentuser");
       name.href = user.html_url;
       name.innerText = user.login;
@@ -44,6 +46,7 @@ function populateComments(receiver) {
 
       element.querySelector("div.commentgravatar").appendChild(image);
       element.querySelector("div.commentbody").innerHTML = comment.body_html;
+      element.id = "";
 
       receiver.appendChild(element);
     }
