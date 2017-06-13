@@ -5,7 +5,6 @@ function loadComments(commentId) {
     let url = ["https://api.github.com/repos/farre/blog/issues", id, "comments"].join('/')
     var request = new XMLHttpRequest();
     request.open('GET', url);
-    request.withCredentials = true;
     request.setRequestHeader("Accept", "application/vnd.github.full+json");
     request.responseType = 'json';
     request.onload = function() {
@@ -28,8 +27,27 @@ function populateComments(receiver) {
     return;
   }
 
-  loadComments(receiver.dataset.id).then(data => {
-    console.log(data);
+  loadComments(receiver.dataset.id).then(comments => {
+    var elementTemplate = document.getElementById('comment-template');
+    var imageTemplate = document.getElementById('image-template');
+    for (let comment of comments) {
+      let user = comment.user;
+
+      let element = elementTemplate.cloneNode(true);
+      let image = imageTemplate.cloneNode(false);
+      image.src = user.avatar_url;
+      let name = element.querySelector("a.commentuser");
+      name.href = user.html_url;
+      name.innerText = user.login;
+      let date = element.querySelector("a.commentdate");
+      date.href = comment.html_url;
+      date.innerText = (new Date(comment.created_at)).toUTCString();
+
+      element.querySelector("div.commentgravatar").appendChild(image);
+      element.querySelector("div.commentbody").innerHTML = comment.body_html;
+
+      receiver.appendChild(element);
+    }
   }).catch(error => {
     console.log(error);
   });
