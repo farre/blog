@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Blog - Work for idle hands to do</title>
+    <link rel="stylesheet" href="../css/default.css" />
+    <link rel="stylesheet" href="../css/code.css" />
+    <script src="../js/comments.js"></script>
+  </head>
+  <body>
+    <div id="header">
+      <div id="logo">
+        <a href="../">Blog</a>
+      </div>
+      <div id="navigation">
+        <a href="../">Home</a>
+        <a href="../archive.html">Archive</a>
+      </div>
+    </div>
+    <div id="body">
+      <div id="sidebar">
+        <div>
+  <div>
+  <h4 id="about">About</h4>
+<p>Platform engineer at Mozilla. Likes doing stuff while idling.</p>
+</div>
+
+</div>
+
+        <div>
+  <div>
+  <h4 id="contact">Contact</h4>
+<p>farre@mozilla.com</p>
+</div>
+
+</div>
+
+      </div>
+      <div id="content">
+        <h1>Work for idle hands to do</h1>
+        
+
+<div class="info">
+  Posted on 2017-06-21
+  
+  by Andreas Farre
+  
+</div>
+<div class="info">
+   Tags: <a href="../tags/mozilla.html">mozilla</a>, <a href="../tags/requestIdleCallback.html">requestIdleCallback</a>, <a href="../tags/idleDispatch.html">idleDispatch</a>, <a href="../tags/DOM%20quantum.html">DOM quantum</a>, <a href="../tags/timers.html">timers</a> 
+</div>
+<div>
+  
+    <p>With Firefox 55 we saw the release of <code class="sourceCode javascript"><span class="va">Window</span>.<span class="at">requestIdleCallback</span>(callback)</code>, which makes it possible for a page to request that a script callback should be called as soon as the user agent is idle. This is something that Potch has written about<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>, but along with <code class="sourceCode javascript">requestIdleCallback</code> there is also an underlying framework that enables the same or similar for both the UI as well as Gecko.</p>
+<!--more-->
+<h3 id="what-is-idle">What is idle?</h3>
+<p>Before we begin we need to define what it means to be idle, especially in the context of requestIdleCallback. Basically there are three levels of event queues, with decreasing priority. The first is where we handle vsync events, the second where we handle regular events, and the third is the idle queue. Scheduling the execution of events from the first two queues needs to actually needs to do some interleaving to not starve event handling, but as far as handling events from the idle queue the rule is that if the first two queues are empty, then events from the event queue will be executed. So in this sense, idle means as soon as there are no other events pending than those on the idle queue<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>.</p>
+<p>There is a flaw with this definition of idleness, but we’ll leave that be for a while. This definition of idleness gives us enough information to be able to schedule events that we want to run when there are no pending vsync events or any regular events.</p>
+<p>We can now do:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">nsCOMPtr&lt;nsIRunnable&gt; event = ...;
+NS_IdleDispatchToCurrentThread(event.forget());</code></pre></div>
+<p>This will schedule the runnable <code>event</code> to the current threads idle queue, and this will be executed the next time we process an event and find that there is only events on the idle queue.</p>
+<h3 id="no-guarantees">No guarantees</h3>
+<p>As we touched upon above, there are no guarantees that the queues with higher priority will be empty, which means that events posted to the idle aren’t guaranteed to run. Because of this we have we need a way to say that we want to schedule an event to run when the user agent is idle, but if we haven’t been idle for some period of time then run the event anyway.</p>
+<p>This we can do like so:</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">nsCOMPtr&lt;nsIRunnable&gt; event = ...;
+<span class="dt">uint32_t</span> timeout = <span class="dv">100</span>;
+NS_IdleDispatchToCurrentThread(event.forget(), <span class="dv">100</span>);</code></pre></div>
+<p>Here we supply the call to <code class="sourceCode cpp">NS_IdleDispatchToCurrentThread</code> with a timeout in milliseconds. If the event hasn’t run before <code>timeout</code> milliseconds has passed, it will run anyway. This is accomplished by wrapping the event and posting the wrapper to the idle queue and setting up a timer that when it fires runs the wrapped event. The wrapping event also makes sure that the wrapped event isn’t called multiple times.</p>
+<h3 id="the-flaw">The flaw</h3>
+<p>Our definition of idleness has, as we’ve already hinted, a weakness. It only says something about if we’re idle right <em>now</em>. If we want to be able to schedule events so that they run while we’re idle, we need some notion of how <em>long</em> we will be idle. Because of this we define the idea of and idle period<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a> to help us and the thread processing events to determine when an idle period will end.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">interface nsIIdlePeriod : nsISupports
+{
+    <span class="co">/**</span>
+<span class="co">     * Return an estimate of a point in time in the future when we</span>
+<span class="co">     * think that the associated thread will become busy. Should</span>
+<span class="co">     * return TimeStamp() (i.e. the null time) or a time less than</span>
+<span class="co">     * TimeStamp::Now() if the thread is currently busy or will become</span>
+<span class="co">     * busy very soon.</span>
+<span class="co">     */</span>
+    TimeStamp getIdlePeriodHint();
+};</code></pre></div>
+<p>For the main thread of Gecko we define idle periods to be<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a>:</p>
+<ul>
+<li>The time between refresh driver ticks, i.e. we are in some kind of animation</li>
+<li>The time until a timer will fire</li>
+<li>50ms, if there are no timers or they’re scheduled to fire in more than 50ms, and if we aren’t animating, i.e. we haven’t ticked the refresh driver for a while.</li>
+</ul>
+<p>With this the thread can make more informed decisions of if it is a good idea to run an event from the idle queue or not. If the current idle period will end soon, then we will most surely execute an event that originates from either the vsync queue or the normal queue. This is enough if the events that we wish to schedule from the idle queue are (very) short. The reason for this is that although it is possible that the current idle period will last for up to 50ms, there is no way for the event to know this. And for that situation we need something more.</p>
+<p>Putting these things together we’re able to define an interface for events that are aware of how long they’re allowed to execute.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> nsIIdleRunnable : <span class="kw">public</span> nsISupports
+{
+<span class="kw">public</span>:
+  <span class="kw">virtual</span> <span class="dt">void</span> SetDeadline(TimeStamp aDeadline) {}
+  <span class="kw">virtual</span> <span class="dt">void</span> SetTimer(<span class="dt">uint32_t</span> aTimeout, nsIEventTarget* aTarget) {}
+};</code></pre></div>
+<p>If we do</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp">nsCOMPtr&lt;nsIIdleRunnable&gt; event = ...;
+NS_IdleDispatchToCurrentThread(event.forget());</code></pre></div>
+<p>where <code class="sourceCode cpp">event</code> is a class that inherits from <code class="sourceCode cpp">nsIIdleRunnable</code>, the thread will make sure to call <code class="sourceCode cpp">SetDeadline</code> before running the event, where the argument <code class="sourceCode cpp">aDeadline</code> is the point in time when the current idle period will end. Using this the event can know how long it has to execute, and handle that accordingly. It is expected that events respect this deadline, and splits up or avoids doing work if it can’t manage to finish in time. This way it is possible to cooperatively schedule work when the user agent is idle.</p>
+<p>If you use the <code class="sourceCode cpp">nsIIdleRunnable</code> interface it is expected that if you wish to call <code class="sourceCode cpp">NS_IdleDispatchToCurrentThread</code> with a timeout then you need to implement <code class="sourceCode cpp">SetTimer</code>. This is because we wish to limit the amount of wrappers when dispatching events by having idle runnables manage their own timers. The call to <code class="sourceCode cpp">SetTimer</code> will happen when the event is dispatched using <code class="sourceCode cpp">NS_IdleDispatchToCurrentThread</code>.</p>
+<h3 id="now-youre-just-being-fancy">Now you’re just being fancy</h3>
+<p>Defining these classes that implement and expose the interface for idle events needs a fair bit of boilerplate. To help alleviate this we define some utility classes and APIs.</p>
+<p>To begin with we have the <code class="sourceCode cpp">IdleRunnable</code><a href="#fn5" class="footnoteRef" id="fnref5"><sup>5</sup></a> class. This class is intended to be sub-classed, and you need to at least override the <code class="sourceCode cpp">Run</code> method, but there is also the <code class="sourceCode cpp">SetDeadline</code> mentioned above as well as SetTimer, but at least you get nsISupports for free. You should also make sure to override the <code>GetName</code> method from the <code>nsINamed</code> interface so that the event shows up with its name in telemetry<a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a>.</p>
+<p>This is still a fair bit of boilerplate which is why we expose the final utility API. In the same way that we can create runnables using <code class="sourceCode cpp">NewRunnableMethod</code><a href="#fn7" class="footnoteRef" id="fnref7"><sup>7</sup></a> we have <code class="sourceCode cpp">NewIdleRunnableMethod</code><a href="#fn8" class="footnoteRef" id="fnref8"><sup>8</sup></a>. This means that if you have a refcounted class it is possible to create a runnable from a class method.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="kw">class</span> IdleClass <span class="kw">final</span>
+{
+<span class="kw">public</span>:
+  NS_INLINE_DECL_REFCOUNTING(IdleClass)
+  <span class="dt">void</span> IdleMethod() {}
+  <span class="dt">void</span> SetDeadline(TimeStamp aTimeStamp) {}
+<span class="kw">private</span>:
+  ~IdleClass() {}
+};
+
+RefPtr&lt;IdleClass&gt; idleObject = <span class="kw">new</span> IdleClass();
+nsCOMPtr&lt;nsIRunnable&gt; runnable = NewIdleRunnableMethod(<span class="st">&quot;ExampleIdleClass&quot;</span>, idleObject, &amp;IdleClass::IdleMethod);
+NS_IdleDispatchToCurrentThread(runnable);</code></pre></div>
+<p>The first argument of <code class="sourceCode cpp">NewIdleRunnableMethod</code> is the name that is returned using the <code class="sourceCode cpp">nsINamed</code> interface. If you want to use a timeout, again we must do it differently using <code class="sourceCode cpp">NewIdleRunnableMethodWithTimer</code>. The benefit here is that we get the wrapper-less timer for free.</p>
+<p>If the method is expected to finish quickly and doesn’t need to handle the end of the current idle period it is fine to skip defining <code class="sourceCode cpp">SetDeadline</code> for the receiving class, but if you do it will be called when the corresponding method for an <code class="sourceCode cpp">nsIIdleRunnable</code> would be called.</p>
+<h3 id="script">Script</h3>
+<p>For the UI the story is cleaner. There is:</p>
+<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> fn <span class="op">=</span> <span class="kw">function</span>() <span class="op">{};</span>
+<span class="va">Services</span>.<span class="va">tm</span>.<span class="at">idleDispatchToMainThread</span>(fn)<span class="op">;</span></code></pre></div>
+<p>and</p>
+<div class="sourceCode"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> fn <span class="op">=</span> <span class="kw">function</span>() <span class="op">{};</span>
+<span class="kw">var</span> timeout <span class="op">=</span> <span class="dv">100</span><span class="op">;</span>
+<span class="va">Services</span>.<span class="va">tm</span>.<span class="at">idleDispatchToMainThread</span>(fn<span class="op">,</span> <span class="dv">100</span>)<span class="op">;</span></code></pre></div>
+<p>Both behaves as expected.</p>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p><a href="https://hacks.mozilla.org/2016/11/cooperative-scheduling-with-requestidlecallback/" class="uri">https://hacks.mozilla.org/2016/11/cooperative-scheduling-with-requestidlecallback/</a><a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>See <a href="https://searchfox.org/mozilla-central/source/xpcom/threads/nsThread.h" class="uri">https://searchfox.org/mozilla-central/source/xpcom/threads/nsThread.h</a><a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>See <a href="https://searchfox.org/mozilla-central/source/xpcom/threads/nsIIdlePeriod.idl" class="uri">https://searchfox.org/mozilla-central/source/xpcom/threads/nsIIdlePeriod.idl</a><a href="#fnref3">↩</a></p></li>
+<li id="fn4"><p>See <a href="https://searchfox.org/mozilla-central/source/xpcom/threads/MainThreadIdlePeriod.h" class="uri">https://searchfox.org/mozilla-central/source/xpcom/threads/MainThreadIdlePeriod.h</a> This is currently the only idle period defined. If you wish to use this feature for other threads than the main thread, an nsIIdlePeriod needs to be defined and registered with the thread using <code class="sourceCode javascript"><span class="va">nsIThread</span>.<span class="at">registerIdlePeriod</span></code><a href="#fnref4">↩</a></p></li>
+<li id="fn5"><p>https://searchfox.org/mozilla-central/source/xpcom/threads/nsThreadUtils.h<a href="#fnref5">↩</a></p></li>
+<li id="fn6"><p>See for example <a href="https://telemetry.mozilla.org/new-pipeline/evo.html#!aggregates=median&amp;cumulative=0&amp;end_date=null&amp;keys=AsyncFreeSnowWhite&amp;max_channel_version=nightly%252F56&amp;measure=IDLE_RUNNABLE_BUDGET_OVERUSE_MS&amp;min_channel_version=nightly%252F53&amp;processType=*&amp;product=Firefox&amp;sanitize=1&amp;sort_keys=submissions&amp;start_date=null&amp;trim=1&amp;use_submission_date=0">https://telemetry.mozilla.org/new-pipeline/evo.html#!aggregates=median&amp;cumulative=0&amp;end_date=null&amp;keys=AsyncFreeSnowWhite&amp;max_channel_version=nightly%252F56&amp;measure=IDLE_RUNNABLE_BUDGET_OVERUSE_MS&amp;min_channel_version=nightly%252F53&amp;processType=*&amp;product=Firefox&amp;sanitize=1&amp;sort_keys=submissions&amp;start_date=null&amp;trim=1&amp;use_submission_date=0</a>. The probe’s name is IDLE_RUNNABLE_BUDGET_VERUSE_MS, and the name of the event shows up as a key in this histogram.<a href="#fnref6">↩</a></p></li>
+<li id="fn7"><p>See <a href="https://searchfox.org/mozilla-central/source/xpcom/threads/nsThreadUtils.h" class="uri">https://searchfox.org/mozilla-central/source/xpcom/threads/nsThreadUtils.h</a><a href="#fnref7">↩</a></p></li>
+<li id="fn8"><p>See <a href="https://searchfox.org/mozilla-central/source/xpcom/threads/nsThreadUtils.h" class="uri">https://searchfox.org/mozilla-central/source/xpcom/threads/nsThreadUtils.h</a><a href="#fnref8">↩</a></p></li>
+</ol>
+</div>
+  
+</div>
+
+<div id="comments" data-id="2">
+  <h2>Comments</h2>
+  <div id="header">
+    Want to leave a comment? Visit <a href="https://github.com/farre/blog/issues/2"> this post's issue page on GitHub</a>.
+
+    <p>Want to contribute? This post has been written on GitHub branch <a href="https://github.com/farre/blog/tree/posts/work-for-idle-hands-to-do/1/posts/work-for-idle-hands-to-do.md">posts/work-for-idle-hands-to-do/1</a>.
+
+  </div>
+</div>
+
+<div style="display: none;">
+  <div class="comment" id="comment-template">
+    <div class="commentheader">
+      <div class="commentgravatar">
+      </div>
+      <a class="commentuser" href></a>
+      <a class="commentdate" href></a>
+    </div>
+    <div class="commentbody"></div>
+  </div>
+  <img id="image-template" width="30" height="30">
+</div>
+
+      </div>
+    </div>
+    <div id="footer">
+      Site proudly generated by
+      <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+    </div>
+  </body>
+</html>
