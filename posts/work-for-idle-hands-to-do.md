@@ -1,12 +1,13 @@
 ---
 title: Work for idle hands to do
-date: 2017-06-13
+date: 2017-06-21
 author: Andreas Farre
 tags: mozilla, requestIdleCallback, idleDispatch, DOM quantum, timers
 commentId: 2
+branch: posts/work-for-idle-hands-to-do/1
 ---
 
-With Firefox 55 we saw the release of `Window.requestIdleCallback(callback)`{.js}, which makes it possible for a page to request that a script callback should be called as soon as the user agent is idle. This is something that Potch has written about[^1], but along with requestIdleCallback there is also an underlying framework that enables the same or similar for both the UI as well as Gecko.
+With Firefox 55 we saw the release of `Window.requestIdleCallback(callback)`{.js}, which makes it possible for a page to request that a script callback should be called as soon as the user agent is idle. This is something that Potch has written about[^1], but along with `requestIdleCallback`{.js} there is also an underlying framework that enables the same or similar for both the UI as well as Gecko.
 
 <!--more-->
 
@@ -37,7 +38,7 @@ uint32_t timeout = 100;
 NS_IdleDispatchToCurrentThread(event.forget(), 100);
 ```
 
-Here we supply the call to `NS_IdleDispatchToCurrentThread` with a timeout in milliseconds. If the event hasn't run before `timeout` milliseconds has passed, it will run anyway. This is accomplished by wrapping the event and posting the wrapper to the idle queue and setting up a timer that when it fires runs the wrapped event. The wrapping event also makes sure that the wrapped event isn't called multiple times.
+Here we supply the call to `NS_IdleDispatchToCurrentThread`{.cpp} with a timeout in milliseconds. If the event hasn't run before `timeout` milliseconds has passed, it will run anyway. This is accomplished by wrapping the event and posting the wrapper to the idle queue and setting up a timer that when it fires runs the wrapped event. The wrapping event also makes sure that the wrapped event isn't called multiple times.
 
 ### The flaw
 
@@ -111,9 +112,9 @@ nsCOMPtr<nsIRunnable> runnable = NewIdleRunnableMethod("ExampleIdleClass", idleO
 NS_IdleDispatchToCurrentThread(runnable);
 ```
 
-The first argument of `NewIdleRunnableMethod`{.cpp} is the name that is returned using the `nsINamed`{.cpp} interface. If you want to use a timeout, again we must do it differently using NewIdleRunnableMethodWithTimer. The benefit here is that we get the wrapper-less timer for free.
+The first argument of `NewIdleRunnableMethod`{.cpp} is the name that is returned using the `nsINamed`{.cpp} interface. If you want to use a timeout, again we must do it differently using `NewIdleRunnableMethodWithTimer`{.cpp}. The benefit here is that we get the wrapper-less timer for free.
 
-If the method is expected to finish quickly and doesn't need to handle the end of the current idle period it is fine to skip defining `SetDeadline`{.cpp} for the receiving class, but if you do it will be called when the corresponding method for an nsIIdleRunnable would be called.
+If the method is expected to finish quickly and doesn't need to handle the end of the current idle period it is fine to skip defining `SetDeadline`{.cpp} for the receiving class, but if you do it will be called when the corresponding method for an `nsIIdleRunnable`{.cpp} would be called.
 
 ### Script
 
