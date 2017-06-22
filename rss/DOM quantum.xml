@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"
+    xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>DOM quantum - farre's blog</title>
+        <link>https://farre.github.io/blog</link>
+        <description><![CDATA[Feed for DOM quantum]]></description>
+        <atom:link href="https://farre.github.io/blog/rss/DOM%20quantum.xml" rel="self"
+                   type="application/rss+xml" />
+        <lastBuildDate>Wed, 21 Jun 2017 00:00:00 UT</lastBuildDate>
+        <item>
+    <title>Work for idle hands to do</title>
+    <link>https://farre.github.io/blog/posts/work-for-idle-hands-to-do.html</link>
+    <description><![CDATA[<div>
+  
+    <p>With Firefox 55 we saw the release of <code class="sourceCode javascript"><span class="va">Window</span>.<span class="at">requestIdleCallback</span>(callback)</code>, which makes it possible for a page to request that a script callback should be called as soon as the user agent is idle. This is something that Potch has written about<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>, but along with <code class="sourceCode javascript">requestIdleCallback</code> there is also an underlying framework that enables the same or similar for both the UI as well as Gecko.</p>
+
+    <a href="/posts/work-for-idle-hands-to-do.html">More...</a>
+  
+</div>
+]]></description>
+    <pubDate>Wed, 21 Jun 2017 00:00:00 UT</pubDate>
+    <guid>https://farre.github.io/blog/posts/work-for-idle-hands-to-do.html</guid>
+    <dc:creator>Andreas farre</dc:creator>
+</item>
+
+    </channel>
+</rss>
