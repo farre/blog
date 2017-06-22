@@ -2,4 +2,4 @@
 -title: About
 ----
 #### About
-Platform engineer at Mozila. Likes doing stuff while idling.
+Platform engineer at Mozilla. Likes doing stuff while idling.
