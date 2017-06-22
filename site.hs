@@ -22,22 +22,33 @@ main = hakyll $ do
     let tags' = Just tags
 
     tagsRules tags $ \tag p -> do
-        route idRoute
+      create [fromCapture "rss/*.xml" tag] $ do
+        route $ idRoute
         compile $ do
-            posts <- recentFirst =<< loadAll p
-            let ctx = getContext Nothing posts (Just $ "Tag " ++ show tag)
-            makeItem ""
-                >>= loadAndApplyTemplate "templates/tag.html" ctx
-                >>= loadAndApplyTemplate "templates/default.html" ctx
-                >>= relativizeUrls
+          posts <- recentFirst =<< loadAllSnapshots p "rss"
+          let ctx = getContext tags' posts Nothing <> bodyField "description"
+          renderRss (feedConfiguration (tag ++ " - ") tag) ctx posts
+
+      route idRoute
+      compile $ do
+        posts <- recentFirst =<< loadAll p
+        let ctx = getContext Nothing posts (Just $ "Tag " ++ show tag) <>
+                  constField "tag" (tag)
+        makeItem ""
+          >>= loadAndApplyTemplate "templates/tag.html" ctx
+          >>= loadAndApplyTemplate "templates/default.html" ctx
+          >>= relativizeUrls
 
     match "posts/*" $ do
         route $ setExtension "html"
         let ctx = constField "post" "" <> getContext tags' [] Nothing
+            rssCtx = teaserField "teaser" "content" <> ctx
         compile $ do
-          pandocCompiler
-            >>= saveSnapshot "content"
-            >>= loadAndApplyTemplate "templates/post.html" ctx
+          res <- pandocCompiler
+          saveSnapshot "content" res
+            >>= loadAndApplyTemplate "templates/rssitem.html" rssCtx
+            >>= saveSnapshot "rss"
+          loadAndApplyTemplate "templates/post.html" ctx res
             >>= loadAndApplyTemplate "templates/comments.html" ctx
             >>= loadAndApplyTemplate "templates/default.html" ctx
             >>= relativizeUrls
@@ -71,6 +82,13 @@ main = hakyll $ do
 
     match "templates/*" $ compile templateBodyCompiler
 
+    create ["rss.xml"] $ do
+      route idRoute
+      compile $ do
+        posts <- recentFirst =<< loadAllSnapshots "posts/*" "rss"
+        let ctx = getContext tags' posts Nothing <> bodyField "description"
+        renderRss (feedConfiguration "" "all posts") ctx posts
+
 --------------------------------------------------------------------------------
 getContext :: Maybe Tags -> [Item String] -> Maybe String -> Context String
 getContext tags posts title =
@@ -84,3 +102,11 @@ getContext tags posts title =
       maybe mempty (tagsField "tags") tags                           <>
       metadataField                                                  <>
       defaultContext
+
+feedConfiguration title tag = FeedConfiguration
+  { feedTitle = title ++ "farre's blog"
+  , feedDescription = "Feed for " ++ tag
+  , feedAuthorName = "Andreas farre"
+  , feedAuthorEmail = "farre@mozilla.com"
+  , feedRoot = "https://farre.github.io/blog"
+  }
