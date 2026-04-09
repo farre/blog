@@ -57,6 +57,10 @@ bundle install
 bundle exec jekyll serve
 ```
 
+## Commits
+
+Do not include "Co-Authored-By" Claude lines in commit messages.
+
 ## Deployment
 
 Pushes to `main` trigger the GitHub Actions workflow (`.github/workflows/jekyll.yml`) which builds and deploys to GitHub Pages. The custom domain is `blog.farre.se` (see `CNAME`).
