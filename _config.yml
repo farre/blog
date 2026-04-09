@@ -1,0 +1,32 @@
+title: farre's blog
+description: Blog by Andreas Farre
+author:
+  name: Andreas Farre
+url: https://blog.farre.se
+baseurl: ""
+
+permalink: /posts/:year/:month/:day/:title/
+
+markdown: kramdown
+highlighter: rouge
+
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+defaults:
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - vendor

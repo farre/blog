@@ -1,0 +1,22 @@
+---
+layout: default
+title: Tags
+permalink: /tags/
+---
+<div class="tags-page">
+  <h1>Tags</h1>
+  {% assign sorted_tags = site.tags | sort %}
+  {% for tag in sorted_tags %}
+  <div class="tag-group">
+    <h2 id="{{ tag[0] }}"><a href="{{ '/tags/' | append: tag[0] | relative_url }}">{{ tag[0] }}</a> <span class="tag-count">({{ tag[1].size }})</span></h2>
+    <ul class="post-list-simple">
+      {% for post in tag[1] %}
+      <li>
+        <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+        <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%B %-d, %Y" }}</time>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+</div>

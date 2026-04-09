@@ -1,0 +1,21 @@
+---
+layout: default
+---
+<div class="tag-page">
+  <div class="tag-heading">
+    <h1 class="post-title">Posts tagged "{{ page.tag }}"</h1>
+    <div class="rss-links">
+      <a class="rss-link" href="{{ '/rss/' | append: page.tag | append: '.xml' | relative_url }}" title="RSS feed"><svg class="feed-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"><circle cx="6.18" cy="17.82" r="2.18" fill="currentColor"/><path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56z" fill="currentColor"/><path d="M4 10.1v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z" fill="currentColor"/></svg><sub>full</sub></a>
+      <a class="rss-link" href="{{ '/rss/' | append: page.tag | append: '-summary.xml' | relative_url }}" title="RSS summary feed"><svg class="feed-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20"><circle cx="6.18" cy="17.82" r="2.18" fill="currentColor"/><path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56z" fill="currentColor"/><path d="M4 10.1v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z" fill="currentColor"/></svg><sub>summary</sub></a>
+    </div>
+  </div>
+  <ul class="post-list-simple">
+    {% assign tagged_posts = site.tags[page.tag] %}
+    {% for post in tagged_posts %}
+    <li>
+      <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+      <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%B %-d, %Y" }}</time>
+    </li>
+    {% endfor %}
+  </ul>
+</div>

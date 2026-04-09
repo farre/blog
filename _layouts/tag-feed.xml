@@ -1,0 +1,21 @@
+---
+---
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>{{ page.tag }} — {{ site.title }}</title>
+    <link>{{ site.url }}{{ '/tags/' | append: page.tag | relative_url }}</link>
+    <description>Posts tagged "{{ page.tag }}" on {{ site.title }}</description>
+    <atom:link href="{{ site.url }}{{ '/rss/' | append: page.tag | append: '.xml' | relative_url }}" rel="self" type="application/rss+xml" />
+    {% assign tagged_posts = site.tags[page.tag] %}
+    {% for post in tagged_posts limit:20 %}
+    <item>
+      <title>{{ post.title | xml_escape }}</title>
+      <link>{{ site.url }}{{ post.url | relative_url }}</link>
+      <guid isPermaLink="true">{{ site.url }}{{ post.url | relative_url }}</guid>
+      <pubDate>{{ post.date | date_to_rfc822 }}</pubDate>
+      <description>{{ post.content | xml_escape }}</description>
+    </item>
+    {% endfor %}
+  </channel>
+</rss>
