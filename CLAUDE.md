@@ -67,4 +67,4 @@ Pushes to `main` trigger the GitHub Actions workflow (`.github/workflows/jekyll.
 
 ## Most important directive
 
-Make no mistakes.
+Make no mistakes!
