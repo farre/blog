@@ -189,6 +189,32 @@ a:hover {
   margin: 0 0 1rem 1.5rem;
 }
 
+/* Footnotes */
+
+.post-content .footnotes ol, .site-content .footnotes ol {
+  list-style: decimal;
+}
+
+/* Tables */
+
+.post-content table, .site-content table {
+  width: auto;
+  border-collapse: collapse;
+  margin-bottom: 1em;
+}
+
+.post-content th, .site-content th,
+.post-content td, .site-content td {
+  border: 1px solid var(--border);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+
+.post-content th, .site-content th {
+  background: var(--code-bg);
+  font-weight: 600;
+}
+
 /* Code */
 
 .post-content code {
