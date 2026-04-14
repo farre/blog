@@ -1,7 +1,7 @@
 ---
 title: How to make Firefox builds<sup><small>1</small></sup> 17% faster<sup><small>2</small></sup>
 date: 2026-04-10
-tags: [mozilla, mach, buildcache]
+tags: [mozilla, mach, buildcache, hobby]
 ---
 
 In the [previous post]({% post_url 2026-04-09-buildcache-with-mach %}), I mentioned that buildcache has some unique properties compared to ccache and sccache. One of them is its [Lua plugin system](https://gitlab.com/bits-n-bites/buildcache/-/blob/master/doc/lua.md), which lets you write custom wrappers for programs that aren't compilers in the traditional sense. With [Bug 2027655](https://bugzilla.mozilla.org/show_bug.cgi?id=2027655) now merged, we can use this to cache Firefox's WebIDL binding code generation.

@@ -1,7 +1,7 @@
 ---
 title: "BuildCache now works with mach"
 date: 2026-04-09
-tags: [mozilla, mach, buildcache]
+tags: [mozilla, mach, buildcache, hobby]
 ---
 
 I'm happy to announce that [buildcache](https://gitlab.com/bits-n-bites/buildcache) is now a first-class compiler cache in `mach`. This has been a long time coming, and I'm excited to finally see it land.
