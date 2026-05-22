@@ -24,6 +24,10 @@ tags: [tag1, tag2]
 
 Posts should be written in a prose style that sounds like me.
 
+## Information gathering
+
+Topics include browser engineering. Use `searchfox-cli` to find information about Firefox/Gecko source code. Use `webspec-index` to find information about web specifications.
+
 ## Comments
 
 We use [utterances](https://utteranc.es/) for comments, backed by GitHub Issues with the `comments` label on `farre/blog`. To add comments to a post, include at the end:
