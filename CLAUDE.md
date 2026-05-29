@@ -24,6 +24,8 @@ tags: [tag1, tag2]
 
 Posts should be written in a prose style that sounds like me.
 
+Never use em dashes.
+
 ## Information gathering
 
 Topics include browser engineering. Use `searchfox-cli` to find information about Firefox/Gecko source code. Use `webspec-index` to find information about web specifications.
