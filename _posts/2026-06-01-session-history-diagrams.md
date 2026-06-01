@@ -8,11 +8,17 @@ I've spent a lot of time at Mozilla working on session history, the machinery th
 
 <!-- more -->
 
-For years my main tool for understanding that state was reading code and printing things to a log. That works, but it's slow, and it never quite shows you the shape of the thing. So I built a way to _see_ it: a new DevTools panel in Firefox Nightly called Session History Diagrams. It lives under the Application tab, next to Service Workers and Manifest, and it draws the browser's session history as a diagram that updates as you navigate.
+For years my main tool for understanding that state was reading code and printing things to a log. That works, but it's slow, and it never quite shows you the shape of the thing. So I built a way to _see_ it: a new DevTools panel in Firefox Nightly called Session History Diagrams.
+
+## Enabling it
+
+The panel is available in Firefox today, behind a pref. It's been there in some form since Firefox 150, growing more stable with each release. To turn it on, set `devtools.application.sessionHistory.enabled` to true in `about:config`, then reload DevTools. The new panel lives under the Application tab, next to Service Workers and Manifest, and it draws the browser's session history as a diagram that updates as you navigate.
+
+Since Firefox 153 it also works over remote debugging. Connect to a device from `about:debugging` and you can watch the session history of a page running on Android, the same as you would on the desktop.
 
 ## Jake diagrams
 
-I didn't invent the idea of drawing this. The HTML spec already has a notation for it, called a [Jake diagram](https://html.spec.whatwg.org/#jake-diagrams) after [Jake Archibald](https://github.com/jakearchibald), and that's where I started. It's a tabular notation where columns represent steps in session history, and rows represent navigables (the top-level browsing context plus any iframes). Background colors identify documents, a fresh color marking a new document loaded in that navigable, and the current step is shown in bold. It's a genuinely useful way to capture multi-navigable interactions that are otherwise hard to describe in prose.
+I didn't invent the idea of drawing this. The HTML spec already has a notation for it, called a [Jake diagram](https://html.spec.whatwg.org/#jake-diagrams) after [Jake Archibald](https://jakearchibald.com/), and that's where I started. It's a tabular notation where columns represent steps in session history, and rows represent navigables (the top-level browsing context plus any iframes). Background colors identify documents, a fresh color marking a new document loaded in that navigable, and the current step is shown in bold. It's a genuinely useful way to capture multi-navigable interactions that are otherwise hard to describe in prose.
 
 ![A Jake diagram showing a top-level navigable and two iframes across five history steps](/assets/images/2026-06-01-session-history-diagrams/jake-diagram.png)
 
@@ -37,12 +43,6 @@ I built this for myself, working on Gecko's session history internals, where bei
 If you build single-page applications, or work with the [History API](https://developer.mozilla.org/en-US/docs/Web/API/History_API) or [Navigation API](https://developer.mozilla.org/en-US/docs/Web/API/Navigation_API), you've probably run into the same kind of confusion from the other side. A push where you expected a replace, a missing history entry, an iframe that accumulated entries unexpectedly. These are hard to reason about without seeing the state directly, and that's exactly what the diagram gives you.
 
 Session history isn't a Firefox-specific problem either. Every engine implements the same part of the HTML spec, and Jake diagrams come from that shared spec. The panel only ever shows Firefox's state, but the rules are the same everywhere, so if you work on another engine it can still be a useful reference for how one implementation behaves. It's often the only practical way to surface an interoperability difference, which might be a bug in any of the engines, but stays hidden until you can actually see it.
-
-## Enabling it
-
-The panel is available in Firefox today, behind a pref. It's been there in some form since Firefox 150, growing more stable with each release. To turn it on, set `devtools.application.sessionHistory.enabled` to true in `about:config`, then reload DevTools and open Application → Session History.
-
-Since Firefox 153 it also works over remote debugging. Connect to a device from `about:debugging` and you can watch the session history of a page running on Android, the same as you would on the desktop.
 
 ## Thanks
 
